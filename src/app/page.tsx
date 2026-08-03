@@ -78,8 +78,9 @@ export default function Home() {
   const isPro = statusPlano === 'PRO';
   const atingiuLimite = !isPro && orcamentosCriados >= limiteGratis;
 
-  // Link real de checkout da Kiwify configurado
+  // Seu link real de checkout da Kiwify e o valor do plano
   const linkCheckoutKiwify = "https://pay.kiwify.com.br/dQg7XIm";
+  const valorPlanoPro = "R$ 29,90"; // Altere aqui se o valor do seu plano for diferente
 
   // Carregar sessão do usuário e dados do Supabase ao iniciar
   useEffect(() => {
@@ -259,7 +260,7 @@ export default function Home() {
     }
 
     if (atingiuLimite) {
-      alert("Você atingiu o limite do plano gratuito!");
+      alert("Você atingiu o limite do plano gratuito! Faça upgrade para o plano PRO.");
       return;
     }
 
@@ -372,18 +373,20 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Alerta de Bloqueio por Limite com Link da Kiwify */}
+        {/* Alerta de Bloqueio por Limite com o Valor e Link da Kiwify */}
         {atingiuLimite && (
           <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl text-amber-900 space-y-3 text-center shadow-sm">
             <p className="font-bold text-base">⚠️ Você atingiu o limite de 2 orçamentos grátis!</p>
-            <p className="text-xs text-amber-800">Para continuar gerando orçamentos ilimitados e ter acesso completo ao sistema, assine o plano PRO agora mesmo.</p>
+            <p className="text-xs text-amber-800">
+              Tenha acesso ilimitado a emissão de orçamentos e PDF por apenas <strong className="text-slate-900">{valorPlanoPro}</strong>.
+            </p>
             <a 
               href={linkCheckoutKiwify}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-sm transition text-center shadow"
             >
-              🚀 Desbloquear Acesso Ilimitado (Assinar na Kiwify)
+              🚀 Assinar Plano PRO por {valorPlanoPro} (Ir para Kiwify)
             </a>
           </div>
         )}
@@ -609,7 +612,7 @@ export default function Home() {
                       📄 Baixar PDF
                     </button>
                     <a 
-                      href={`https://wa.me/?text=${encodeURIComponent(`Olá ${item.cliente.nome}, segue a proposta comercial de R$ ${item.valorTotal.toFixed(2)} emitida por ${item.prestador.nome}.`)}`}
+                      href={`https://wa.me/?text=${encodeURIComponent(`Olá ${item.cliente.nome}, segue a proposta comercial de R$ ${item.valorTotal.toFixed(2)} emitida por ${item.prestador.nome}.`)}` }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 text-center py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition"
