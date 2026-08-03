@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, ChangeEvent } from 'react';
+<<<<<<< HEAD
 import { createClient } from '@supabase/supabase-js';
 
 // Inicializa o cliente do Supabase no front-end
@@ -8,6 +9,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+=======
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
 
 interface ItemOrcamento {
   id: number;
@@ -18,7 +21,11 @@ interface ItemOrcamento {
 
 interface Prestador {
   nome: string;
+<<<<<<< HEAD
   documento: string;
+=======
+  documento: string; // CPF ou CNPJ
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
   endereco: string;
   logoUrl?: string;
   cadastrado: boolean;
@@ -26,7 +33,11 @@ interface Prestador {
 
 interface Cliente {
   nome: string;
+<<<<<<< HEAD
   documento: string;
+=======
+  documento: string; // CPF ou CNPJ
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
   endereco: string;
 }
 
@@ -40,12 +51,19 @@ interface Orcamento {
 }
 
 export default function Home() {
+<<<<<<< HEAD
   const [user, setUser] = useState<any>(null);
   const [orcamentosCriados, setOrcamentosCriados] = useState(0);
   const [statusPlano, setStatusPlano] = useState('FREE'); // 'FREE' ou 'PRO'
   const [carregando, setCarregando] = useState(true);
 
   // Dados Fixos do Prestador
+=======
+  const [orcamentosCriados, setOrcamentosCriados] = useState(0);
+  const [planoAtivo, setPlanoAtivo] = useState(false);
+
+  // Dados Fixos do Prestador (Trava de Segurança)
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
   const [prestador, setPrestador] = useState<Prestador>({
     nome: '',
     documento: '',
@@ -54,12 +72,20 @@ export default function Home() {
     cadastrado: false
   });
 
+<<<<<<< HEAD
+=======
+  // Campos de edição inicial do Prestador
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
   const [nomePrestador, setNomePrestador] = useState('');
   const [docPrestador, setDocPrestador] = useState('');
   const [enderecoPrestador, setEnderecoPrestador] = useState('');
   const [logoUrl, setLogoUrl] = useState<string>('');
 
+<<<<<<< HEAD
   // Dados Dinâmicos do Cliente
+=======
+  // Dados Dinâmicos por Orçamento (Cliente)
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
   const [nomeCliente, setNomeCliente] = useState('');
   const [docCliente, setDocCliente] = useState('');
   const [enderecoCliente, setEnderecoCliente] = useState('');
@@ -67,6 +93,10 @@ export default function Home() {
     new Date().toISOString().split('T')[0]
   );
 
+<<<<<<< HEAD
+=======
+  // Itens do orçamento
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
   const [itens, setItens] = useState<ItemOrcamento[]>([
     { id: Date.now(), descricao: '', quantidade: 1, valorUnitario: 0 }
   ]);
@@ -75,6 +105,7 @@ export default function Home() {
   const [orcamentoParaPdf, setOrcamentoParaPdf] = useState<Orcamento | null>(null);
 
   const limiteGratis = 2;
+<<<<<<< HEAD
   const isPro = statusPlano === 'PRO';
   const atingiuLimite = !isPro && orcamentosCriados >= limiteGratis;
 
@@ -162,6 +193,21 @@ export default function Home() {
     }
 
     carregarDadosUsuario();
+=======
+  const atingiuLimite = !planoAtivo && orcamentosCriados >= limiteGratis;
+
+  // Carregar dados salvos no localStorage ao iniciar
+  useEffect(() => {
+    const prestadorSalvo = localStorage.getItem('dados_prestador_fixo');
+    if (prestadorSalvo) {
+      const dados: Prestador = JSON.parse(prestadorSalvo);
+      setPrestador(dados);
+      setNomePrestador(dados.nome);
+      setDocPrestador(dados.documento);
+      setEnderecoPrestador(dados.endereco);
+      setLogoUrl(dados.logoUrl || '');
+    }
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
   }, []);
 
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
@@ -175,6 +221,7 @@ export default function Home() {
     }
   };
 
+<<<<<<< HEAD
   // Salvar Dados do Prestador no Supabase e na Tabela perfis
   const salvarEBloquearPrestador = async () => {
     if (!nomePrestador || !docPrestador) {
@@ -199,6 +246,12 @@ export default function Home() {
 
     if (error) {
       alert("Erro ao salvar dados: " + error.message);
+=======
+  // Travar os dados do Prestador no cadastro inicial
+  const salvarEBloquearPrestador = () => {
+    if (!nomePrestador || !docPrestador) {
+      alert("Por favor, preencha pelo menos o Nome/Razão Social e o CPF/CNPJ para registrar sua conta.");
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
       return;
     }
 
@@ -211,7 +264,12 @@ export default function Home() {
     };
 
     setPrestador(novosDados);
+<<<<<<< HEAD
     alert("Dados cadastrais salvos com sucesso no sistema!");
+=======
+    localStorage.setItem('dados_prestador_fixo', JSON.stringify(novosDados));
+    alert("Dados cadastrais salvos e fixados com sucesso! Agora você já pode criar seus orçamentos.");
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
   };
 
   const adicionarItem = () => {
@@ -245,10 +303,16 @@ export default function Home() {
     return `${dia}/${mes}/${ano}`;
   };
 
+<<<<<<< HEAD
   // Salvar Orçamento de verdade no Banco de Dados Supabase
   const adicionarOrcamento = async () => {
     if (!prestador.cadastrado) {
       alert("Você precisa primeiro salvar os dados da sua empresa antes de emitir orçamentos!");
+=======
+  const adicionarOrcamento = () => {
+    if (!prestador.cadastrado) {
+      alert("Você precisa primeiro salvar os dados da sua empresa/cadastro antes de emitir orçamentos!");
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
       return;
     }
 
@@ -268,6 +332,7 @@ export default function Home() {
       return;
     }
 
+<<<<<<< HEAD
     if (!user) {
       alert("Erro de autenticação. Faça login novamente.");
       return;
@@ -309,6 +374,10 @@ export default function Home() {
 
     const novo: Orcamento = {
       id: novoOrcamentoSupabase.id,
+=======
+    const novo: Orcamento = {
+      id: Date.now(),
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
       prestador,
       cliente: {
         nome: nomeCliente,
@@ -316,14 +385,23 @@ export default function Home() {
         endereco: enderecoCliente,
       },
       itens,
+<<<<<<< HEAD
       valorTotal: valorTotalCalc,
       data: dataFormatada
+=======
+      valorTotal: calcularTotal(),
+      data: formatarDataBR(dataOrcamento)
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
     };
 
     setListaOrcamentos([novo, ...listaOrcamentos]);
     setOrcamentosCriados(orcamentosCriados + 1);
 
+<<<<<<< HEAD
     // Resetar campos do cliente
+=======
+    // Resetar apenas os dados do cliente e lista de itens
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
     setNomeCliente('');
     setDocCliente('');
     setEnderecoCliente('');
@@ -351,6 +429,7 @@ export default function Home() {
     }, 300);
   };
 
+<<<<<<< HEAD
   if (carregando) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-600">
@@ -359,6 +438,8 @@ export default function Home() {
     );
   }
 
+=======
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans text-slate-800">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -370,16 +451,26 @@ export default function Home() {
           
           <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center text-sm">
             <span>
+<<<<<<< HEAD
               Status: <strong className={isPro ? "text-green-600" : "text-amber-600"}>
                 {isPro ? "Plano PRO (Ilimitado)" : "Plano Gratuito"}
               </strong>
             </span>
             <span className="font-semibold text-slate-700">
               {isPro ? "∞" : `${orcamentosCriados} / ${limiteGratis} usados`}
+=======
+              Status: <strong className={planoAtivo ? "text-green-600" : "text-amber-600"}>
+                {planoAtivo ? "Plano PRO (Ilimitado)" : "Plano Gratuito"}
+              </strong>
+            </span>
+            <span className="font-semibold text-slate-700">
+              {planoAtivo ? "∞" : `${orcamentosCriados} / ${limiteGratis} usados`}
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
             </span>
           </div>
         </div>
 
+<<<<<<< HEAD
         {/* Alerta de Bloqueio por Limite com Link da Kiwify */}
         {atingiuLimite && (
           <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl text-amber-900 space-y-3 text-center shadow-sm">
@@ -403,6 +494,32 @@ export default function Home() {
               <h2 className="font-bold text-slate-800">Dados da Sua Empresa / Prestador</h2>
               <p className="text-xs text-slate-500">
                 {prestador.cadastrado ? "🔒 Dados vinculados à sua licença de uso." : "Preencha com atenção."}
+=======
+        {/* Alerta de Bloqueio por Limite */}
+        {atingiuLimite && (
+          <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-amber-900 space-y-3 text-center">
+            <p className="font-semibold">⚠️ Limite de 2 orçamentos grátis atingido!</p>
+            <button 
+              onClick={() => setPlanoAtivo(true)}
+              className="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-xl text-sm transition"
+            >
+              Simular Assinatura PRO
+            </button>
+          </div>
+        )}
+
+        {/* CADASTRO FIXO DO PRESTADOR (DADOS DA SUA EMPRESA) */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="font-bold text-slate-800">
+                Dados Fixo da Sua Empresa / Prestador
+              </h2>
+              <p className="text-xs text-slate-500">
+                {prestador.cadastrado 
+                  ? "🔒 Dados vinculados à sua licença de uso." 
+                  : "Preencha com atenção. Estes dados ficarão registrados no seu perfil."}
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
               </p>
             </div>
             {prestador.cadastrado && (
@@ -419,8 +536,14 @@ export default function Home() {
                 type="text" 
                 placeholder="Ex: João Pedreiro / Marcenaria Silva"
                 value={nomePrestador}
+<<<<<<< HEAD
                 onChange={(e) => setNomePrestador(e.target.value)}
                 className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+=======
+                disabled={prestador.cadastrado}
+                onChange={(e) => setNomePrestador(e.target.value)}
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-600"
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
               />
             </div>
 
@@ -430,8 +553,14 @@ export default function Home() {
                 type="text" 
                 placeholder="Ex: 000.000.000-00"
                 value={docPrestador}
+<<<<<<< HEAD
                 onChange={(e) => setDocPrestador(e.target.value)}
                 className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+=======
+                disabled={prestador.cadastrado}
+                onChange={(e) => setDocPrestador(e.target.value)}
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-600"
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
               />
             </div>
 
@@ -441,6 +570,7 @@ export default function Home() {
                 type="text" 
                 placeholder="Rua, Número, Bairro, Cidade - UF"
                 value={enderecoPrestador}
+<<<<<<< HEAD
                 onChange={(e) => setEnderecoPrestador(e.target.value)}
                 className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -464,12 +594,58 @@ export default function Home() {
           >
             💾 Salvar Dados da Empresa
           </button>
+=======
+                disabled={prestador.cadastrado}
+                onChange={(e) => setEnderecoPrestador(e.target.value)}
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-600"
+              />
+            </div>
+
+            {!prestador.cadastrado && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Sua Logomarca (Opcional)</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                />
+              </div>
+            )}
+          </div>
+
+          {!prestador.cadastrado ? (
+            <button 
+              type="button"
+              onClick={salvarEBloquearPrestador}
+              className="w-full py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
+            >
+              🔒 Salvar e Travar Meus Dados de Prestador
+            </button>
+          ) : (
+            <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex justify-between items-center text-xs text-blue-900">
+              <span>Para alterar seu CNPJ/CPF ou Razão Social, solicite ao suporte:</span>
+              <a 
+                href="https://wa.me/?text=Ol%C3%A1%2C%20preciso%20solicitar%20a%20altera%C3%A7%C3%A3o%20dos%20dados%20cadastrais%20da%20minha%20conta." 
+                target="_blank" 
+                rel="noreferrer"
+                className="font-bold underline hover:text-blue-700"
+              >
+                Fale Conosco
+              </a>
+            </div>
+          )}
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
         </div>
 
         {/* EMISSÃO DO ORÇAMENTO */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
           <h2 className="font-bold text-slate-800 border-b border-slate-100 pb-2">Novo Orçamento para Cliente</h2>
           
+<<<<<<< HEAD
+=======
+          {/* Data e Cliente */}
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Data do Orçamento</label>
@@ -573,6 +749,10 @@ export default function Home() {
             ))}
           </div>
 
+<<<<<<< HEAD
+=======
+          {/* Resumo Total */}
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
           <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
             <span className="text-sm font-semibold text-slate-600">Total do Orçamento:</span>
             <span className="text-lg font-bold text-green-600">
@@ -589,7 +769,11 @@ export default function Home() {
             {!prestador.cadastrado 
               ? "Cadastre seus dados acima primeiro" 
               : atingiuLimite 
+<<<<<<< HEAD
                 ? "Bloqueado pelo Limite Gratuito" 
+=======
+                ? "Bloqueado pelo Limite" 
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
                 : "Gerar Orçamento em PDF"}
           </button>
         </div>
@@ -604,7 +788,11 @@ export default function Home() {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-bold text-slate-800">{item.cliente.nome}</p>
+<<<<<<< HEAD
                       <p className="text-xs text-slate-500">Data: {item.data}</p>
+=======
+                      <p className="text-xs text-slate-500">Data: {item.data} • {item.itens.length} item(ns)</p>
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
                     </div>
                     <p className="font-bold text-green-600">R$ {item.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
@@ -633,10 +821,19 @@ export default function Home() {
 
       </div>
 
+<<<<<<< HEAD
       {/* MODELO IMPRESSO DO PDF */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
         {orcamentoParaPdf && (
           <div id="modelo-pdf" style={{ width: '700px', padding: '30px', backgroundColor: '#ffffff', fontFamily: 'sans-serif', color: '#1e293b' }}>
+=======
+      {/* MODELO IMPRESSO DO PDF (Oculto na tela, renderizado apenas para captura do html2pdf) */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+        {orcamentoParaPdf && (
+          <div id="modelo-pdf" style={{ width: '700px', padding: '30px', backgroundColor: '#ffffff', fontFamily: 'sans-serif', color: '#1e293b' }}>
+            
+            {/* Cabeçalho */}
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
             <div style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 {orcamentoParaPdf.prestador.logoUrl ? (
@@ -649,18 +846,32 @@ export default function Home() {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a' }}>
+<<<<<<< HEAD
                   Nº #{String(orcamentoParaPdf.id).slice(-6)}
+=======
+                  Nº #{orcamentoParaPdf.id.toString().slice(-6)}
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
                 </span>
               </div>
             </div>
 
+<<<<<<< HEAD
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', marginTop: '20px', paddingBottom: '15px', borderBottom: '1px solid #f1f5f9' }}>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 6px 0', textTransform: 'uppercase' }}>PRESTADOR</p>
+=======
+            {/* Bloco de Dados: Prestador vs Cliente */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', marginTop: '20px', paddingBottom: '15px', borderBottom: '1px solid #f1f5f9' }}>
+              
+              {/* Prestador (Fixo) */}
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 6px 0', textTransform: 'uppercase' }}>EMISSOR / PRESTADOR</p>
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
                 <p style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>{orcamentoParaPdf.prestador.nome}</p>
                 {orcamentoParaPdf.prestador.documento && (
                   <p style={{ fontSize: '11px', color: '#475569', margin: '2px 0 0 0' }}>CPF/CNPJ: {orcamentoParaPdf.prestador.documento}</p>
                 )}
+<<<<<<< HEAD
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 6px 0', textTransform: 'uppercase' }}>CLIENTE</p>
@@ -675,6 +886,35 @@ export default function Home() {
                   <th style={{ padding: '10px', textAlign: 'center', fontSize: '12px', color: '#475569' }}>Qtd</th>
                   <th style={{ padding: '10px', textAlign: 'right', fontSize: '12px', color: '#475569' }}>Valor Unit.</th>
                   <th style={{ padding: '10px', textAlign: 'right', fontSize: '12px', color: '#475569' }}>Subtotal</th>
+=======
+                {orcamentoParaPdf.prestador.endereco && (
+                  <p style={{ fontSize: '11px', color: '#475569', margin: '2px 0 0 0' }}>{orcamentoParaPdf.prestador.endereco}</p>
+                )}
+              </div>
+
+              {/* Cliente */}
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#2563eb', margin: '0 0 6px 0', textTransform: 'uppercase' }}>CLIENTE</p>
+                <p style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>{orcamentoParaPdf.cliente.nome}</p>
+                {orcamentoParaPdf.cliente.documento && (
+                  <p style={{ fontSize: '11px', color: '#475569', margin: '2px 0 0 0' }}>CPF/CNPJ: {orcamentoParaPdf.cliente.documento}</p>
+                )}
+                {orcamentoParaPdf.cliente.endereco && (
+                  <p style={{ fontSize: '11px', color: '#475569', margin: '2px 0 0 0' }}>{orcamentoParaPdf.cliente.endereco}</p>
+                )}
+              </div>
+
+            </div>
+
+            {/* Tabela de Itens */}
+            <table style={{ width: '100%', marginTop: '20px', borderCollapse: 'collapse', border: '1px solid #e2e8f0' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc' }}>
+                  <th style={{ padding: '10px', textAlign: 'left', fontSize: '12px', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>Descrição dos Serviços / Materiais</th>
+                  <th style={{ padding: '10px', textAlign: 'center', fontSize: '12px', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>Qtd</th>
+                  <th style={{ padding: '10px', textAlign: 'right', fontSize: '12px', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>Valor Unit.</th>
+                  <th style={{ padding: '10px', textAlign: 'right', fontSize: '12px', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>Subtotal</th>
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
                 </tr>
               </thead>
               <tbody>
@@ -691,15 +931,33 @@ export default function Home() {
               </tbody>
             </table>
 
+<<<<<<< HEAD
+=======
+            {/* Total */}
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
               <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>VALOR TOTAL</span>
               <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>
                 R$ {orcamentoParaPdf.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </span>
             </div>
+<<<<<<< HEAD
           </div>
         )}
       </div>
+=======
+
+            {/* Rodapé */}
+            <div style={{ marginTop: '40px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Obrigado pela oportunidade de apresentar esta proposta!</p>
+              <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', margin: 0 }}>Validade desta proposta: 15 dias a contar da data de emissão.</p>
+            </div>
+
+          </div>
+        )}
+      </div>
+
+>>>>>>> ab80df0c1e8e90a43ff1d5624063a33a8bd0804b
     </div>
   );
 }
