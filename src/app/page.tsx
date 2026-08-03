@@ -3,7 +3,6 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Inicializa o cliente do Supabase no front-end
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -42,10 +41,12 @@ interface Orcamento {
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [orcamentosCriados, setOrcamentosCriados] = useState(0);
-  const [statusPlano, setStatusPlano] = useState('FREE'); // 'FREE' ou 'PRO'
+  const [statusPlano, setStatusPlano] = useState('FREE');
   const [carregando, setCarregando] = useState(true);
 
-  // Dados Fixos do Prestador
+  // Controle de edição dos dados da empresa
+  const [editandoPrestador, setEditandoPrestador] = useState(false);
+
   const [prestador, setPrestador] = useState<Prestador>({
     nome: '',
     documento: '',
@@ -59,7 +60,6 @@ export default function Home() {
   const [enderecoPrestador, setEnderecoPrestador] = useState('');
   const [logoUrl, setLogoUrl] = useState<string>('');
 
-  // Dados Dinâmicos do Cliente
   const [nomeCliente, setNomeCliente] = useState('');
   const [docCliente, setDocCliente] = useState('');
   const [enderecoCliente, setEnderecoCliente] = useState('');
@@ -78,11 +78,9 @@ export default function Home() {
   const isPro = statusPlano === 'PRO';
   const atingiuLimite = !isPro && orcamentosCriados >= limiteGratis;
 
-  // Seu link real de checkout da Kiwify e o valor do plano
   const linkCheckoutKiwify = "https://pay.kiwify.com.br/dQg7XIm";
-  const valorPlanoPro = "R$ 29,90"; // Altere aqui se o valor do seu plano for diferente
+  const valorPlanoPro = "R$ 29,90";
 
-  // Carregar sessão do usuário e dados do Supabase ao iniciar
   useEffect(() => {
     async function carregarDadosUsuario() {
       try {
@@ -95,7 +93,6 @@ export default function Home() {
 
         setUser(session.user);
 
-        // 1. Buscar Perfil no Supabase
         const { data: perfilData } = await supabase
           .from('perfis')
           .select('*')
@@ -120,7 +117,6 @@ export default function Home() {
           }
         }
 
-        // 2. Contar quantos orçamentos esse usuário já criou no banco
         const { count, data: orcamentosData } = await supabase
           .from('orcamentos')
           .select('id, cliente_nome, cliente_documento, cliente_endereco, valor_total, data_orcamento', { count: 'exact' })
@@ -131,13 +127,13 @@ export default function Home() {
           setOrcamentosCriados(count);
         }
 
-        if (orcamentosData) {
+        if (orcamentosData && perfilData) {
           const formatados: Orcamento[] = orcamentosData.map((o: any) => ({
             id: o.id,
             prestador: {
-              nome: perfilData?.nome_prestador || '',
-              documento: perfilData?.documento || '',
-              endereco: perfilData?.endereco || '',
+              nome: perfilData.nome_prestador || '',
+              documento: perfilData.documento || '',
+              endereco: perfilData.endereco || '',
               cadastrado: true
             },
             cliente: {
@@ -153,7 +149,7 @@ export default function Home() {
         }
 
       } catch (error) {
-        console.error('Erro ao carregar dados do Supabase:', error);
+        console.error('Erro ao carregar dados:', error);
       } finally {
         setCarregando(false);
       }
@@ -173,14 +169,14 @@ export default function Home() {
     }
   };
 
-  const salvarEBloquearPrestador = async () => {
+  const salvarDadosPrestador = async () => {
     if (!nomePrestador || !docPrestador) {
-      alert("Por favor, preencha pelo menos o Nome/Razão Social e o CPF/CNPJ.");
+      alert("Por favor, preencha o Nome e o CPF/CNPJ da empresa.");
       return;
     }
 
     if (!user) {
-      alert("Você precisa estar logado para salvar seus dados.");
+      alert("Você precisa estar logado.");
       return;
     }
 
@@ -195,20 +191,20 @@ export default function Home() {
       .eq('id', user.id);
 
     if (error) {
-      alert("Erro ao salvar dados: " + error.message);
+      alert("Erro ao salvar: " + error.message);
       return;
     }
 
-    const novosDados: Prestador = {
+    setPrestador({
       nome: nomePrestador,
       documento: docPrestador,
       endereco: enderecoPrestador,
       logoUrl: logoUrl,
       cadastrado: true
-    };
+    });
 
-    setPrestador(novosDados);
-    alert("Dados cadastrais salvos com sucesso no sistema!");
+    setEditandoPrestador(false);
+    alert("Dados da empresa salvos e bloqueados com segurança!");
   };
 
   const adicionarItem = () => {
@@ -243,29 +239,18 @@ export default function Home() {
   };
 
   const adicionarOrcamento = async () => {
+    if (atingiuLimite) {
+      alert("Você atingiu o limite de orçamentos gratuitos. Faça o upgrade para o plano PRO.");
+      return;
+    }
+
     if (!prestador.cadastrado) {
-      alert("Você precisa primeiro salvar os dados da sua empresa antes de emitir orçamentos!");
+      alert("Por favor, salve os dados da sua empresa antes de emitir orçamentos!");
       return;
     }
 
     if (!nomeCliente) {
       alert("Por favor, preencha o nome do cliente!");
-      return;
-    }
-
-    const temItemInvalido = itens.some(i => !i.descricao || i.valorUnitario <= 0);
-    if (temItemInvalido) {
-      alert("Por favor, preencha a descrição e valor de todos os itens!");
-      return;
-    }
-
-    if (atingiuLimite) {
-      alert("Você atingiu o limite do plano gratuito! Faça upgrade para o plano PRO.");
-      return;
-    }
-
-    if (!user) {
-      alert("Erro de autenticação. Faça login novamente.");
       return;
     }
 
@@ -296,7 +281,7 @@ export default function Home() {
       orcamento_id: novoOrcamentoSupabase.id,
       descricao: it.descricao,
       quantidade: it.quantidade,
-      valor_unitario: it.valorUnitario
+      unit_price: it.valorUnitario
     }));
 
     await supabase.from('itens_orcamento').insert(itensParaInserir);
@@ -325,7 +310,6 @@ export default function Home() {
 
   const baixarPDF = async (item: Orcamento) => {
     setOrcamentoParaPdf(item);
-
     const html2pdf = (await import('html2pdf.js')).default;
     
     setTimeout(() => {
@@ -347,16 +331,18 @@ export default function Home() {
   if (carregando) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-600">
-        Carregando seus dados...
+        Carregando...
       </div>
     );
   }
+
+  const bloqueadoEmpresa = prestador.cadastrado && !editandoPrestador;
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans text-slate-800">
       <div className="max-w-3xl mx-auto space-y-6">
         
-        {/* Painel de Status */}
+        {/* Painel */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center">
           <h1 className="text-2xl font-bold text-slate-800">Gerador de Orçamentos Profissional</h1>
           <p className="text-sm text-slate-500 mt-1">Sua ferramenta oficial para emissão de propostas comerciais</p>
@@ -373,12 +359,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Alerta de Bloqueio por Limite com o Valor e Link da Kiwify */}
+        {/* Alerta de Limite */}
         {atingiuLimite && (
           <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl text-amber-900 space-y-3 text-center shadow-sm">
-            <p className="font-bold text-base">⚠️ Você atingiu o limite de 2 orçamentos grátis!</p>
+            <p className="font-bold text-base">⚠️ Você atingiu o limite de {limiteGratis} orçamentos grátis!</p>
             <p className="text-xs text-amber-800">
-              Tenha acesso ilimitado a emissão de orçamentos e PDF por apenas <strong className="text-slate-900">{valorPlanoPro}</strong>.
+              Tenha acesso ilimitado à emissão de orçamentos por apenas <strong className="text-slate-900">{valorPlanoPro}</strong>.
             </p>
             <a 
               href={linkCheckoutKiwify}
@@ -391,19 +377,22 @@ export default function Home() {
           </div>
         )}
 
-        {/* CADASTRO FIXO DO PRESTADOR */}
+        {/* DADOS DA EMPRESA (FIXOS E PROTEGIDOS) */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <div>
               <h2 className="font-bold text-slate-800">Dados da Sua Empresa / Prestador</h2>
               <p className="text-xs text-slate-500">
-                {prestador.cadastrado ? "🔒 Dados vinculados à sua licença de uso." : "Preencha com atenção."}
+                {bloqueadoEmpresa ? "🔒 Dados fixados e vinculados à sua licença." : "Preencha para travar e emitir seus orçamentos."}
               </p>
             </div>
-            {prestador.cadastrado && (
-              <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold rounded-full flex items-center gap-1">
-                🔒 Dados Registrados
-              </span>
+            {prestador.cadastrado && !editandoPrestador && (
+              <button 
+                onClick={() => setEditandoPrestador(true)}
+                className="text-xs font-semibold text-blue-600 hover:underline"
+              >
+                ✏️ Alterar Dados
+              </button>
             )}
           </div>
 
@@ -412,10 +401,11 @@ export default function Home() {
               <label className="block text-xs font-semibold text-slate-500 mb-1">Nome Fantasia / Seu Nome</label>
               <input 
                 type="text" 
-                placeholder="Ex: João Pedreiro / Marcenaria Silva"
+                placeholder="Ex: Marcenaria Silva"
                 value={nomePrestador}
+                disabled={bloqueadoEmpresa}
                 onChange={(e) => setNomePrestador(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
               />
             </div>
 
@@ -425,8 +415,9 @@ export default function Home() {
                 type="text" 
                 placeholder="Ex: 000.000.000-00"
                 value={docPrestador}
+                disabled={bloqueadoEmpresa}
                 onChange={(e) => setDocPrestador(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
               />
             </div>
 
@@ -436,29 +427,34 @@ export default function Home() {
                 type="text" 
                 placeholder="Rua, Número, Bairro, Cidade - UF"
                 value={enderecoPrestador}
+                disabled={bloqueadoEmpresa}
                 onChange={(e) => setEnderecoPrestador(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
               />
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Sua Logomarca (Opcional)</label>
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={handleLogoUpload}
-                className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-              />
-            </div>
+            {!bloqueadoEmpresa && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Sua Logomarca (Opcional)</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                />
+              </div>
+            )}
           </div>
 
-          <button 
-            type="button"
-            onClick={salvarEBloquearPrestador}
-            className="w-full py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition cursor-pointer"
-          >
-            💾 Salvar Dados da Empresa
-          </button>
+          {!bloqueadoEmpresa && (
+            <button 
+              type="button"
+              onClick={salvarDadosPrestador}
+              className="w-full py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition cursor-pointer"
+            >
+              🔒 Salvar e Fixar Dados da Empresa
+            </button>
+          )}
         </div>
 
         {/* EMISSÃO DO ORÇAMENTO */}
@@ -471,7 +467,7 @@ export default function Home() {
               <input 
                 type="date" 
                 value={dataOrcamento}
-                disabled={atingiuLimite || !prestador.cadastrado}
+                disabled={atingiuLimite}
                 onChange={(e) => setDataOrcamento(e.target.value)}
                 className="w-full p-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
               />
@@ -483,7 +479,7 @@ export default function Home() {
                 type="text" 
                 placeholder="Ex: Carlos Eduardo"
                 value={nomeCliente}
-                disabled={atingiuLimite || !prestador.cadastrado}
+                disabled={atingiuLimite}
                 onChange={(e) => setNomeCliente(e.target.value)}
                 className="w-full p-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
               />
@@ -495,7 +491,7 @@ export default function Home() {
                 type="text" 
                 placeholder="000.000.000-00"
                 value={docCliente}
-                disabled={atingiuLimite || !prestador.cadastrado}
+                disabled={atingiuLimite}
                 onChange={(e) => setDocCliente(e.target.value)}
                 className="w-full p-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
               />
@@ -507,7 +503,7 @@ export default function Home() {
                 type="text" 
                 placeholder="Endereço da entrega ou obra"
                 value={enderecoCliente}
-                disabled={atingiuLimite || !prestador.cadastrado}
+                disabled={atingiuLimite}
                 onChange={(e) => setEnderecoCliente(e.target.value)}
                 className="w-full p-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
               />
@@ -521,7 +517,7 @@ export default function Home() {
               <button 
                 type="button"
                 onClick={adicionarItem}
-                disabled={atingiuLimite || !prestador.cadastrado}
+                disabled={atingiuLimite}
                 className="text-xs font-bold text-blue-600 hover:text-blue-800 disabled:text-slate-400"
               >
                 + Adicionar Item
@@ -534,7 +530,7 @@ export default function Home() {
                   type="text" 
                   placeholder="Descrição do serviço/produto"
                   value={item.descricao}
-                  disabled={atingiuLimite || !prestador.cadastrado}
+                  disabled={atingiuLimite}
                   onChange={(e) => atualizarItem(item.id, 'descricao', e.target.value)}
                   className="flex-1 p-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
                 />
@@ -543,7 +539,7 @@ export default function Home() {
                   min="1"
                   placeholder="Qtd"
                   value={item.quantidade}
-                  disabled={atingiuLimite || !prestador.cadastrado}
+                  disabled={atingiuLimite}
                   onChange={(e) => atualizarItem(item.id, 'quantidade', Math.max(1, Number(e.target.value)))}
                   className="w-16 p-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 text-center"
                 />
@@ -551,7 +547,7 @@ export default function Home() {
                   type="number" 
                   placeholder="R$ Unit."
                   value={item.valorUnitario || ''}
-                  disabled={atingiuLimite || !prestador.cadastrado}
+                  disabled={atingiuLimite}
                   onChange={(e) => atualizarItem(item.id, 'valorUnitario', Number(e.target.value))}
                   className="w-24 p-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
                 />
@@ -578,18 +574,14 @@ export default function Home() {
           <button 
             type="button"
             onClick={adicionarOrcamento}
-            disabled={atingiuLimite || !prestador.cadastrado}
+            disabled={atingiuLimite}
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold rounded-xl text-sm transition cursor-pointer"
           >
-            {!prestador.cadastrado 
-              ? "Cadastre seus dados acima primeiro" 
-              : atingiuLimite 
-                ? "Bloqueado pelo Limite Gratuito" 
-                : "Gerar Orçamento em PDF"}
+            {atingiuLimite ? "Bloqueado pelo Limite Gratuito" : "Gerar Orçamento em PDF"}
           </button>
         </div>
 
-        {/* Lista de Orçamentos Gerados */}
+        {/* Lista de Orçamentos */}
         {listaOrcamentos.length > 0 && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
             <h2 className="font-bold text-slate-700">Seus Orçamentos Emitidos</h2>
@@ -612,7 +604,7 @@ export default function Home() {
                       📄 Baixar PDF
                     </button>
                     <a 
-                      href={`https://wa.me/?text=${encodeURIComponent(`Olá ${item.cliente.nome}, segue a proposta comercial de R$ ${item.valorTotal.toFixed(2)} emitida por ${item.prestador.nome}.`)}` }
+                      href={`https://wa.me/?text=${encodeURIComponent(`Olá ${item.cliente.nome}, segue a proposta comercial de R$ ${item.valorTotal.toFixed(2)} emitida por ${item.prestador.nome}.`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 text-center py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition"
@@ -628,7 +620,7 @@ export default function Home() {
 
       </div>
 
-      {/* MODELO IMPRESSO DO PDF */}
+      {/* MODELO PDF */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
         {orcamentoParaPdf && (
           <div id="modelo-pdf" style={{ width: '700px', padding: '40px', background: '#ffffff', fontFamily: 'sans-serif', color: '#1e293b' }}>
