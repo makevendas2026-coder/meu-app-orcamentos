@@ -40,11 +40,17 @@ interface Orcamento {
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
-  const [orcamentosCriados, setOrcamentosCriados] = useState(0);
-  const [statusPlano, setStatusPlano] = useState('FREE');
   const [carregando, setCarregando] = useState(true);
 
-  // Controle de edição dos dados da empresa
+  // Estados da Tela de Login/Cadastro
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [emailAuth, setEmailAuth] = useState('');
+  const [senhaAuth, setSenhaAuth] = useState('');
+  const [erroAuth, setErroAuth] = useState('');
+
+  // Estados do Aplicativo
+  const [orcamentosCriados, setOrcamentosCriados] = useState(0);
+  const [statusPlano, setStatusPlano] = useState('FREE');
   const [editandoPrestador, setEditandoPrestador] = useState(false);
 
   const [prestador, setPrestador] = useState<Prestador>({
@@ -81,104 +87,142 @@ export default function Home() {
   const linkCheckoutKiwify = "https://pay.kiwify.com.br/dQg7XIm";
   const valorPlanoPro = "R$ 29,90";
 
+  // Verificar sessão ao carregar
   useEffect(() => {
-    async function carregarDadosUsuario() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          setCarregando(false);
-          return;
-        }
-
+    async function verificarSessao() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
         setUser(session.user);
-
-        const { data: perfilData } = await supabase
-          .from('perfis')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (perfilData) {
-          setStatusPlano(perfilData.status_plano || 'FREE');
-          if (perfilData.nome_prestador) {
-            const dadosPrestador: Prestador = {
-              nome: perfilData.nome_prestador,
-              documento: perfilData.documento || '',
-              endereco: perfilData.endereco || '',
-              logoUrl: perfilData.logo_url || '',
-              cadastrado: true
-            };
-            setPrestador(dadosPrestador);
-            setNomePrestador(dadosPrestador.nome);
-            setDocPrestador(dadosPrestador.documento);
-            setEnderecoPrestador(dadosPrestador.endereco);
-            setLogoUrl(dadosPrestador.logoUrl || '');
-          }
-        }
-
-        const { count, data: orcamentosData } = await supabase
-          .from('orcamentos')
-          .select('id, cliente_nome, cliente_documento, cliente_endereco, valor_total, data_orcamento', { count: 'exact' })
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false });
-
-        if (count !== null) {
-          setOrcamentosCriados(count);
-        }
-
-        if (orcamentosData && perfilData) {
-          const formatados: Orcamento[] = orcamentosData.map((o: any) => ({
-            id: o.id,
-            prestador: {
-              nome: perfilData.nome_prestador || '',
-              documento: perfilData.documento || '',
-              endereco: perfilData.endereco || '',
-              cadastrado: true
-            },
-            cliente: {
-              nome: o.cliente_nome,
-              documento: o.cliente_documento,
-              endereco: o.cliente_endereco
-            },
-            itens: [],
-            valorTotal: Number(o.valor_total),
-            data: o.data_orcamento
-          }));
-          setListaOrcamentos(formatados);
-        }
-
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-      } finally {
-        setCarregando(false);
+        await carregarDadosPainel(session.user.id);
       }
+      setCarregando(false);
     }
 
-    carregarDadosUsuario();
+    verificarSessao();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        setUser(session.user);
+        await carregarDadosPainel(session.user.id);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  async function carregarDadosPainel(userId: string) {
+    try {
+      const { data: perfilData } = await supabase
+        .from('perfis')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (perfilData) {
+        setStatusPlano(perfilData.status_plano || 'FREE');
+        if (perfilData.nome_prestador) {
+          const dadosP: Prestador = {
+            nome: perfilData.nome_prestador,
+            documento: perfilData.documento || '',
+            endereco: perfilData.endereco || '',
+            logoUrl: perfilData.logo_url || '',
+            cadastrado: true
+          };
+          setPrestador(dadosP);
+          setNomePrestador(dadosP.nome);
+          setDocPrestador(dadosP.documento);
+          setEnderecoPrestador(dadosP.endereco);
+          setLogoUrl(dadosP.logoUrl || '');
+        }
+      }
+
+      const { count, data: orcamentosData } = await supabase
+        .from('orcamentos')
+        .select('id, cliente_nome, cliente_documento, cliente_endereco, valor_total, data_orcamento', { count: 'exact' })
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (count !== null) setOrcamentosCriados(count);
+
+      if (orcamentosData && perfilData) {
+        const formatados: Orcamento[] = orcamentosData.map((o: any) => ({
+          id: o.id,
+          prestador: {
+            nome: perfilData.nome_prestador || '',
+            documento: perfilData.documento || '',
+            endereco: perfilData.endereco || '',
+            cadastrado: true
+          },
+          cliente: {
+            nome: o.cliente_nome,
+            documento: o.cliente_documento,
+            endereco: o.cliente_endereco
+          },
+          itens: [],
+          valorTotal: Number(o.valor_total),
+          data: o.data_orcamento
+        }));
+        setListaOrcamentos(formatados);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar painel:", err);
+    }
+  }
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErroAuth('');
+
+    if (!emailAuth || !senhaAuth) {
+      setErroAuth("Preencha e-mail e senha.");
+      return;
+    }
+
+    if (isLoginMode) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: emailAuth,
+        password: senhaAuth,
+      });
+      if (error) setErroAuth("Erro ao entrar: " + error.message);
+    } else {
+      const { error } = await supabase.auth.signUp({
+        email: emailAuth,
+        password: senhaAuth,
+      });
+      if (error) {
+        setErroAuth("Erro ao cadastrar: " + error.message);
+      } else {
+        alert("Conta criada com sucesso! Verifique se recebeu confirmação ou tente fazer login.");
+        setIsLoginMode(true);
+      }
+    }
+  };
+
+  const fazerLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setPrestador({ nome: '', documento: '', endereco: '', logoUrl: '', cadastrado: false });
+    setListaOrcamentos([]);
+    setOrcamentosCriados(0);
+  };
 
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoUrl(reader.result as string);
-      };
+      reader.onloadend = () => setLogoUrl(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
   const salvarDadosPrestador = async () => {
     if (!nomePrestador || !docPrestador) {
-      alert("Por favor, preencha o Nome e o CPF/CNPJ da empresa.");
+      alert("Preencha o Nome e o CPF/CNPJ da sua empresa.");
       return;
     }
-
-    if (!user) {
-      alert("Você precisa estar logado.");
-      return;
-    }
+    if (!user) return;
 
     const { error } = await supabase
       .from('perfis')
@@ -191,7 +235,7 @@ export default function Home() {
       .eq('id', user.id);
 
     if (error) {
-      alert("Erro ao salvar: " + error.message);
+      alert("Erro ao salvar dados: " + error.message);
       return;
     }
 
@@ -199,19 +243,15 @@ export default function Home() {
       nome: nomePrestador,
       documento: docPrestador,
       endereco: enderecoPrestador,
-      logoUrl: logoUrl,
+      logoUrl,
       cadastrado: true
     });
-
     setEditandoPrestador(false);
-    alert("Dados da empresa salvos e bloqueados com segurança!");
+    alert("Dados da empresa salvos e fixados com sucesso!");
   };
 
   const adicionarItem = () => {
-    setItens([
-      ...itens,
-      { id: Date.now(), descricao: '', quantidade: 1, valorUnitario: 0 }
-    ]);
+    setItens([...itens, { id: Date.now(), descricao: '', quantidade: 1, valorUnitario: 0 }]);
   };
 
   const removerItem = (id: number) => {
@@ -220,12 +260,7 @@ export default function Home() {
   };
 
   const atualizarItem = (id: number, campo: keyof ItemOrcamento, valor: string | number) => {
-    setItens(itens.map(item => {
-      if (item.id === id) {
-        return { ...item, [campo]: valor };
-      }
-      return item;
-    }));
+    setItens(itens.map(item => item.id === id ? { ...item, [campo]: valor } : item));
   };
 
   const calcularTotal = () => {
@@ -240,17 +275,15 @@ export default function Home() {
 
   const adicionarOrcamento = async () => {
     if (atingiuLimite) {
-      alert("Você atingiu o limite de orçamentos gratuitos. Faça o upgrade para o plano PRO.");
+      alert("Limite de orçamentos gratuitos atingido. Faça upgrade para o plano PRO.");
       return;
     }
-
     if (!prestador.cadastrado) {
-      alert("Por favor, salve os dados da sua empresa antes de emitir orçamentos!");
+      alert("Salve os dados da sua empresa antes de emitir orçamentos!");
       return;
     }
-
     if (!nomeCliente) {
-      alert("Por favor, preencha o nome do cliente!");
+      alert("Preencha o nome do cliente!");
       return;
     }
 
@@ -259,21 +292,19 @@ export default function Home() {
 
     const { data: novoOrcamentoSupabase, error: erroOrcamento } = await supabase
       .from('orcamentos')
-      .insert([
-        {
-          user_id: user.id,
-          cliente_nome: nomeCliente,
-          cliente_documento: docCliente,
-          cliente_endereco: enderecoCliente,
-          valor_total: valorTotalCalc,
-          data_orcamento: dataFormatada
-        }
-      ])
+      .insert([{
+        user_id: user.id,
+        cliente_nome: nomeCliente,
+        cliente_documento: docCliente,
+        cliente_endereco: enderecoCliente,
+        valor_total: valorTotalCalc,
+        data_orcamento: dataFormatada
+      }])
       .select()
       .single();
 
     if (erroOrcamento) {
-      alert("Erro ao salvar orçamento: " + erroOrcamento.message);
+      alert("Erro: " + erroOrcamento.message);
       return;
     }
 
@@ -289,11 +320,7 @@ export default function Home() {
     const novo: Orcamento = {
       id: novoOrcamentoSupabase.id,
       prestador,
-      cliente: {
-        nome: nomeCliente,
-        documento: docCliente,
-        endereco: enderecoCliente,
-      },
+      cliente: { nome: nomeCliente, documento: docCliente, endereco: enderecoCliente },
       itens,
       valorTotal: valorTotalCalc,
       data: dataFormatada
@@ -301,7 +328,6 @@ export default function Home() {
 
     setListaOrcamentos([novo, ...listaOrcamentos]);
     setOrcamentosCriados(orcamentosCriados + 1);
-
     setNomeCliente('');
     setDocCliente('');
     setEnderecoCliente('');
@@ -311,11 +337,9 @@ export default function Home() {
   const baixarPDF = async (item: Orcamento) => {
     setOrcamentoParaPdf(item);
     const html2pdf = (await import('html2pdf.js')).default;
-    
     setTimeout(() => {
       const elemento = document.getElementById('modelo-pdf');
       if (!elemento) return;
-
       const opcoes = {
         margin: 10,
         filename: `Orcamento_${item.cliente.nome.replace(/\s+/g, '_')}.pdf`,
@@ -323,15 +347,71 @@ export default function Home() {
         html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       } as const;
-
       html2pdf().set(opcoes).from(elemento).save();
     }, 300);
   };
 
   if (carregando) {
+    return <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-600">Carregando...</div>;
+  }
+
+  // TELA DE LOGIN / CADASTRO SE O USUÁRIO NÃO ESTIVER LOGADO
+  if (!user) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-600">
-        Carregando...
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-bold text-slate-800">Gerador de Orçamentos</h1>
+            <p className="text-xs text-slate-500">Faça login ou crie sua conta para gerenciar seus orçamentos</p>
+          </div>
+
+          {erroAuth && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl text-center font-semibold">
+              {erroAuth}
+            </div>
+          )}
+
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">E-mail</label>
+              <input 
+                type="email" 
+                placeholder="seu@email.com"
+                value={emailAuth}
+                onChange={(e) => setEmailAuth(e.target.value)}
+                className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Senha</label>
+              <input 
+                type="password" 
+                placeholder="••••••••"
+                value={senhaAuth}
+                onChange={(e) => setSenhaAuth(e.target.value)}
+                className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <button 
+              type="submit"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition shadow"
+            >
+              {isLoginMode ? "Entrar na Minha Conta" : "Criar Nova Conta"}
+            </button>
+          </form>
+
+          <div className="text-center pt-2 border-t border-slate-100">
+            <button 
+              type="button"
+              onClick={() => { setIsLoginMode(!isLoginMode); setErroAuth(''); }}
+              className="text-xs text-blue-600 font-semibold hover:underline"
+            >
+              {isLoginMode ? "Não tem uma conta? Cadastre-se grátis" : "Já tem uma conta? Faça login"}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -342,12 +422,22 @@ export default function Home() {
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans text-slate-800">
       <div className="max-w-3xl mx-auto space-y-6">
         
-        {/* Painel */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center">
-          <h1 className="text-2xl font-bold text-slate-800">Gerador de Orçamentos Profissional</h1>
-          <p className="text-sm text-slate-500 mt-1">Sua ferramenta oficial para emissão de propostas comerciais</p>
+        {/* Painel Topo com Botão Sair */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-slate-800">Gerador de Orçamentos Profissional</h1>
+              <p className="text-xs text-slate-500">Logado como: <strong className="text-slate-700">{user.email}</strong></p>
+            </div>
+            <button 
+              onClick={fazerLogout}
+              className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
+            >
+              Sair da Conta
+            </button>
+          </div>
           
-          <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center text-sm">
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center text-sm">
             <span>
               Status: <strong className={isPro ? "text-green-600" : "text-amber-600"}>
                 {isPro ? "Plano PRO (Ilimitado)" : "Plano Gratuito"}
@@ -377,13 +467,13 @@ export default function Home() {
           </div>
         )}
 
-        {/* DADOS DA EMPRESA (FIXOS E PROTEGIDOS) */}
+        {/* DADOS DA EMPRESA */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <div>
               <h2 className="font-bold text-slate-800">Dados da Sua Empresa / Prestador</h2>
               <p className="text-xs text-slate-500">
-                {bloqueadoEmpresa ? "🔒 Dados fixados e vinculados à sua licença." : "Preencha para travar e emitir seus orçamentos."}
+                {bloqueadoEmpresa ? "🔒 Dados protegidos e vinculados à sua licença." : "Preencha para travar e emitir seus orçamentos."}
               </p>
             </div>
             {prestador.cadastrado && !editandoPrestador && (
@@ -510,7 +600,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Tabela de Itens */}
           <div className="pt-3 border-t border-slate-100 space-y-3">
             <div className="flex justify-between items-center">
               <label className="block text-xs font-semibold text-slate-500">Serviços / Produtos</label>
